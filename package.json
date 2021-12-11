@@ -1,0 +1,13 @@
+{
+  "name": "voxbox",
+  "version": "1.0.0",
+  "author": "Gorman Ho <gormanchi@gmail.com>",
+  "private": true,
+  "source": "index.html",
+  "scripts": {
+    "start": "parcel"
+  },
+  "devDependencies": {
+    "parcel": "2.0.1"
+  }
+}
