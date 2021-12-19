@@ -1,1 +1,246 @@
-console.log("Hello, world!");
+const canvas = document.querySelector("#canvas");
+
+canvas.width = 800;
+canvas.height = 600;
+
+const gl = canvas.getContext("webgl2");
+if (!gl) {
+  console.error("WebGL v2 is not supported.");
+  return;
+}
+
+gl.enable(gl.CULL_FACE);
+gl.enable(gl.DEPTH_TEST);
+
+function loadShader(type, source) {
+  const shader = gl.createShader(type);
+  gl.shaderSource(shader, source.trimStart());
+  gl.compileShader(shader);
+  if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+    const message = gl.getShaderInfoLog(shader).slice(0, -1);
+    gl.deleteShader(shader);
+    throw new Error(message);
+  }
+  return shader;
+}
+
+const vertexShader = loadShader(
+  gl.VERTEX_SHADER,
+  `
+    #version 300 es
+
+    uniform mat4 u_projection;
+    uniform mat4 u_view;
+
+    in vec2 in_texture_coords;
+    in vec4 in_position;
+
+    out vec2 v_texture_coords;
+
+    void main() {
+      v_texture_coords = in_texture_coords;
+      gl_Position = u_projection * u_view * in_position;
+    }
+  `,
+);
+
+const fragmentShader = loadShader(
+  gl.FRAGMENT_SHADER,
+  `
+    #version 300 es
+
+    precision highp float;
+
+    uniform sampler2D u_texture;
+
+    in vec2 v_texture_coords;
+
+    out vec4 out_color;
+
+    void main() {
+      out_color = texture(u_texture, v_texture_coords);
+    }
+  `,
+);
+
+const program = gl.createProgram();
+gl.attachShader(program, vertexShader);
+gl.attachShader(program, fragmentShader);
+
+try {
+  gl.linkProgram(program);
+  gl.detachShader(program, vertexShader);
+  gl.detachShader(program, fragmentShader);
+  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+    const message = gl.getProgramInfoLog(program);
+    gl.deleteProgram(program);
+    throw new Error(message);
+  }
+} finally {
+  gl.deleteShader(vertexShader);
+  gl.deleteShader(fragmentShader);
+}
+
+const projection = gl.getUniformLocation(program, "u_projection");
+const view = gl.getUniformLocation(program, "u_view");
+const position = gl.getAttribLocation(program, "in_position");
+const textureCoords = gl.getAttribLocation(program, "in_texture_coords");
+
+const vertexArray = gl.createVertexArray();
+gl.bindVertexArray(vertexArray);
+
+function createBuffer(target, data) {
+  const buffer = gl.createBuffer();
+  gl.bindBuffer(target, buffer);
+  gl.bufferData(target, data, gl.STATIC_DRAW);
+}
+
+function bindVertexAttribute(index, size, type, normalized, stride, offset) {
+  gl.enableVertexAttribArray(index);
+  gl.vertexAttribPointer(index, size, type, normalized, stride, offset);
+}
+
+//   8---7
+//  /|  /|
+// 4---3 |
+// | 5-|-6
+// |/  |/
+// 1---2
+createBuffer(
+  gl.ARRAY_BUFFER,
+  new Float32Array([
+    // front
+    -0.5, -0.5,  0.5, // 1
+     0.5,  0.5,  0.5, // 3
+    -0.5,  0.5,  0.5, // 4
+    -0.5, -0.5,  0.5, // 1
+     0.5, -0.5,  0.5, // 2
+     0.5,  0.5,  0.5, // 3
+    // back
+     0.5, -0.5, -0.5, // 6
+    -0.5,  0.5, -0.5, // 8
+     0.5,  0.5, -0.5, // 7
+     0.5, -0.5, -0.5, // 6
+    -0.5, -0.5, -0.5, // 5
+    -0.5,  0.5, -0.5, // 8
+    // top
+    -0.5,  0.5,  0.5, // 4
+     0.5,  0.5, -0.5, // 7
+    -0.5,  0.5, -0.5, // 8
+    -0.5,  0.5,  0.5, // 4
+     0.5,  0.5,  0.5, // 3
+     0.5,  0.5, -0.5, // 7
+    // bottom
+    -0.5, -0.5, -0.5, // 5
+     0.5, -0.5,  0.5, // 2
+    -0.5, -0.5,  0.5, // 1
+    -0.5, -0.5, -0.5, // 5
+     0.5, -0.5, -0.5, // 6
+     0.5, -0.5,  0.5, // 2
+    // left
+    -0.5, -0.5, -0.5, // 5
+    -0.5,  0.5,  0.5, // 4
+    -0.5,  0.5, -0.5, // 8
+    -0.5, -0.5, -0.5, // 5
+    -0.5, -0.5,  0.5, // 1
+    -0.5,  0.5,  0.5, // 4
+    // right
+     0.5, -0.5,  0.5, // 2
+     0.5,  0.5, -0.5, // 7
+     0.5,  0.5,  0.5, // 3
+     0.5, -0.5,  0.5, // 2
+     0.5, -0.5, -0.5, // 6
+     0.5,  0.5, -0.5, // 7
+  ]),
+);
+bindVertexAttribute(position, 3, gl.FLOAT, false, 0, 0);
+
+createBuffer(
+  gl.ARRAY_BUFFER,
+  new Float32Array([
+    0, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, // front
+    0, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, // back
+    0, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, // top
+    0, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, // bottom
+    0, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, // left
+    0, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, // right
+  ]),
+);
+bindVertexAttribute(textureCoords, 2, gl.FLOAT, false, 0, 0);
+
+function radians(degrees) {
+  return degrees * 0.01745329251;
+}
+
+function perspective(fovy, near, far) {
+  const f = Math.tan(1.57079632679 - radians(fovy)/2);
+  const aspect = gl.canvas.width/gl.canvas.height;
+  return [
+    f/aspect, 0, 0, 0,
+    0, f, 0, 0,
+    0, 0, (near+far) / (near-far), -1,
+    0, 0, 2*near*far / (near-far), 0,
+  ];
+}
+
+function add(x, y) {
+  return [x[0]+y[0], x[1]+y[1], x[2]+y[2]];
+}
+
+function sub(x, y) {
+  return [x[0]-y[0], x[1]-y[1], x[2]-y[2]];
+}
+
+function norm(x) {
+  const len = Math.sqrt(x[0]**2 + x[1]**2 + x[2]**2);
+  return [x[0]/len, x[1]/len, x[2]/len];
+}
+
+function cross(x, y) {
+  return [
+    x[1]*y[2] - x[2]*y[1],
+    x[2]*y[0] - x[0]*y[2],
+    x[0]*y[1] - x[1]*y[0],
+  ];
+}
+
+function dot(x, y) {
+  return x[0]*y[0] + x[1]*y[1] + x[2]*y[2];
+}
+
+function camera() {
+  const position = [2, 2, 2];
+  const up = [0, 1, 0];
+  const front = [-1, -1, -1];
+  const target = add(position, front);
+  const f = norm(sub(target, position));
+  const s = norm(cross(f, up));
+  const u = cross(s, f);
+  return [
+    s[0], s[1], s[2], -dot(s, position),
+    u[0], u[1], u[2], -dot(u, position),
+    -f[0], -f[1], -f[2], dot(f, position),
+    0, 0, 0, 1,
+  ];
+}
+
+const image = new Image();
+image.src = new URL("dirt.png", import.meta.url);
+
+image.onload = () => {
+  gl.useProgram(program);
+
+  gl.uniformMatrix4fv(projection, false, perspective(60, 0.1, 100));
+  gl.uniformMatrix4fv(view, true, camera());
+
+  const texture = gl.createTexture();
+  gl.activeTexture(gl.TEXTURE0);
+  gl.bindTexture(gl.TEXTURE_2D, texture);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+
+  gl.clearColor(0, 0, 0, 1);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+  gl.drawArrays(gl.TRIANGLES, 0, 36);
+};
