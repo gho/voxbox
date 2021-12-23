@@ -83,7 +83,6 @@ try {
 
 const projection = gl.getUniformLocation(program, "u_projection");
 const view = gl.getUniformLocation(program, "u_view");
-const position = gl.getAttribLocation(program, "in_position");
 const textureCoords = gl.getAttribLocation(program, "in_texture_coords");
 
 const vertexArray = gl.createVertexArray();
@@ -153,7 +152,10 @@ createBuffer(
      0.5,  0.5, -0.5, // 7
   ]),
 );
-bindVertexAttribute(position, 3, gl.FLOAT, false, 0, 0);
+bindVertexAttribute(
+  gl.getAttribLocation(program, "in_position"),
+  3, gl.FLOAT, false, 0, 0,
+);
 
 createBuffer(
   gl.ARRAY_BUFFER,
@@ -191,6 +193,14 @@ function sub(x, y) {
   return [x[0]-y[0], x[1]-y[1], x[2]-y[2]];
 }
 
+function mul(x, c) {
+  return [x[0]*c, x[1]*c, x[2]*c];
+}
+
+function negate(x) {
+  return [-x[0], -x[1], -x[2]];
+}
+
 function norm(x) {
   const len = Math.sqrt(x[0]**2 + x[1]**2 + x[2]**2);
   return [x[0]/len, x[1]/len, x[2]/len];
@@ -208,10 +218,11 @@ function dot(x, y) {
   return x[0]*y[0] + x[1]*y[1] + x[2]*y[2];
 }
 
+let position = [-4, 0, 0];
+const up = [0, 1, 0];
+let front = [0, 0, -1];
+
 function camera() {
-  const position = [2, 2, 2];
-  const up = [0, 1, 0];
-  const front = [-1, -1, -1];
   const target = add(position, front);
   const f = norm(sub(target, position));
   const s = norm(cross(f, up));
@@ -224,6 +235,69 @@ function camera() {
   ];
 }
 
+let forward, backward, left, right;
+
+document.addEventListener("keydown", event => {
+  switch (event.key) {
+    case "w": forward = true; break;
+    case "s": backward = true; break;
+    case "a": left = true; break;
+    case "d": right = true; break;
+  }
+});
+
+document.addEventListener("keyup", event => {
+  switch (event.key) {
+    case "w": forward = false; break;
+    case "s": backward = false; break;
+    case "a": left = false; break;
+    case "d": right = false; break;
+  }
+});
+
+let yaw = 0, pitch = 0;
+
+const minPitch = -89;
+const maxPitch =  89;
+const angularVelocity = 0.15;
+
+canvas.onclick = () => {
+  canvas.requestPointerLock();
+};
+
+function handleMouseMove(event) {
+  yaw += event.movementX * angularVelocity;
+  if (Math.abs(yaw) > 360) yaw = 0;
+
+  pitch -= event.movementY * angularVelocity;
+  if (pitch > maxPitch) pitch = maxPitch;
+  if (pitch < minPitch) pitch = minPitch;
+}
+
+document.addEventListener("pointerlockchange", () => {
+  if (document.pointerLockElement === canvas) {
+    document.addEventListener("mousemove", handleMouseMove);
+  } else {
+    document.removeEventListener("mousemove", handleMouseMove);
+  }
+});
+
+function update() {
+  const cosPitch = Math.cos(radians(pitch));
+  front = norm([
+    Math.cos(radians(yaw)) * cosPitch,
+    Math.sin(radians(pitch)),
+    Math.sin(radians(yaw)) * cosPitch,
+  ]);
+
+  let velocity;
+  if (forward)  velocity = front;
+  if (backward) velocity = negate(front);
+  if (left)     velocity = negate(norm(cross(front, up)));
+  if (right)    velocity = norm(cross(front, up));
+  if (velocity) position = add(position, mul(velocity, 0.1));
+}
+
 const image = new Image();
 image.src = new URL("dirt.png", import.meta.url);
 
@@ -231,7 +305,6 @@ image.onload = () => {
   gl.useProgram(program);
 
   gl.uniformMatrix4fv(projection, false, perspective(60, 0.1, 100));
-  gl.uniformMatrix4fv(view, true, camera());
 
   const texture = gl.createTexture();
   gl.activeTexture(gl.TEXTURE0);
@@ -240,7 +313,17 @@ image.onload = () => {
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
 
-  gl.clearColor(0, 0, 0, 1);
-  gl.clear(gl.COLOR_BUFFER_BIT);
-  gl.drawArrays(gl.TRIANGLES, 0, 36);
+  function render() {
+    update();
+
+    gl.uniformMatrix4fv(view, true, camera());
+
+    gl.clearColor(0, 0, 0, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.drawArrays(gl.TRIANGLES, 0, 36);
+
+    requestAnimationFrame(render);
+  }
+
+  requestAnimationFrame(render);
 };
