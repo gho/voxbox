@@ -34,12 +34,13 @@ const vertexShader = loadShader(
 
     in vec2 in_texture_coords;
     in vec4 in_position;
+    in vec4 in_offset;
 
     out vec2 v_texture_coords;
 
     void main() {
       v_texture_coords = in_texture_coords;
-      gl_Position = u_projection * u_view * in_position;
+      gl_Position = u_projection * u_view * (in_position + in_offset);
     }
   `,
 );
@@ -81,10 +82,6 @@ try {
   gl.deleteShader(fragmentShader);
 }
 
-const projection = gl.getUniformLocation(program, "u_projection");
-const view = gl.getUniformLocation(program, "u_view");
-const textureCoords = gl.getAttribLocation(program, "in_texture_coords");
-
 const vertexArray = gl.createVertexArray();
 gl.bindVertexArray(vertexArray);
 
@@ -95,6 +92,9 @@ function createBuffer(target, data) {
 }
 
 function bindVertexAttribute(index, size, type, normalized, stride, offset) {
+  if (typeof index === "string") {
+    index = gl.getAttribLocation(program, index);
+  }
   gl.enableVertexAttribArray(index);
   gl.vertexAttribPointer(index, size, type, normalized, stride, offset);
 }
@@ -152,10 +152,7 @@ createBuffer(
      0.5,  0.5, -0.5, // 7
   ]),
 );
-bindVertexAttribute(
-  gl.getAttribLocation(program, "in_position"),
-  3, gl.FLOAT, false, 0, 0,
-);
+bindVertexAttribute("in_position", 3, gl.FLOAT, false, 0, 0);
 
 createBuffer(
   gl.ARRAY_BUFFER,
@@ -168,7 +165,21 @@ createBuffer(
     0, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, // right
   ]),
 );
-bindVertexAttribute(textureCoords, 2, gl.FLOAT, false, 0, 0);
+bindVertexAttribute("in_texture_coords", 2, gl.FLOAT, false, 0, 0);
+
+const instances = [];
+for (let x = -2; x <= 2; x += 2) {
+  for (let z = -2; z <= 2; z += 2) {
+    for (let y = -2; y <= 2; y += 2) {
+      instances.push(x, y, z);
+    }
+  }
+}
+
+createBuffer(gl.ARRAY_BUFFER, new Float32Array(instances));
+const offset = gl.getAttribLocation(program, "in_offset");
+bindVertexAttribute(offset, 3, gl.FLOAT, false, 0, 0);
+gl.vertexAttribDivisor(offset, 1);
 
 function radians(degrees) {
   return degrees * 0.01745329251;
@@ -304,6 +315,7 @@ image.src = new URL("dirt.png", import.meta.url);
 image.onload = () => {
   gl.useProgram(program);
 
+  const projection = gl.getUniformLocation(program, "u_projection");
   gl.uniformMatrix4fv(projection, false, perspective(60, 0.1, 100));
 
   const texture = gl.createTexture();
@@ -313,6 +325,8 @@ image.onload = () => {
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
 
+  const view = gl.getUniformLocation(program, "u_view");
+
   function render() {
     update();
 
@@ -320,7 +334,7 @@ image.onload = () => {
 
     gl.clearColor(0, 0, 0, 1);
     gl.clear(gl.COLOR_BUFFER_BIT);
-    gl.drawArrays(gl.TRIANGLES, 0, 36);
+    gl.drawArraysInstanced(gl.TRIANGLES, 0, 36, 27);
 
     requestAnimationFrame(render);
   }
