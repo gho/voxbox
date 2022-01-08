@@ -1,3 +1,5 @@
+import generateTerrain from "./terrain.js";
+
 const canvas = document.querySelector("#canvas");
 
 canvas.width = 800;
@@ -167,16 +169,23 @@ createBuffer(
 );
 bindVertexAttribute("in_texture_coords", 2, gl.FLOAT, false, 0, 0);
 
-const instances = [];
-for (let x = -2; x <= 2; x += 2) {
-  for (let z = -2; z <= 2; z += 2) {
-    for (let y = -2; y <= 2; y += 2) {
-      instances.push(x, y, z);
+const width = 6;
+const height = 6;
+const depth = 6;
+
+const terrain = generateTerrain(width, depth);
+
+const blocks = [];
+for (let z = 0; z < depth; z++) {
+  for (let x = 0; x < width; x++) {
+    const h = terrain[z*width + x] * height;
+    for (let y = 0; y < h; y++) {
+      blocks.push(x, y, z);
     }
   }
 }
 
-createBuffer(gl.ARRAY_BUFFER, new Float32Array(instances));
+createBuffer(gl.ARRAY_BUFFER, new Float32Array(blocks));
 const offset = gl.getAttribLocation(program, "in_offset");
 bindVertexAttribute(offset, 3, gl.FLOAT, false, 0, 0);
 gl.vertexAttribDivisor(offset, 1);
@@ -229,9 +238,9 @@ function dot(x, y) {
   return x[0]*y[0] + x[1]*y[1] + x[2]*y[2];
 }
 
-let position = [-4, 0, 0];
+let position = [-3, 1, 1];
 const up = [0, 1, 0];
-let front = [0, 0, -1];
+let front = [1, 0, 0];
 
 function camera() {
   const target = add(position, front);
@@ -334,7 +343,7 @@ image.onload = () => {
 
     gl.clearColor(0, 0, 0, 1);
     gl.clear(gl.COLOR_BUFFER_BIT);
-    gl.drawArraysInstanced(gl.TRIANGLES, 0, 36, 27);
+    gl.drawArraysInstanced(gl.TRIANGLES, 0, 36, blocks.length/3);
 
     requestAnimationFrame(render);
   }
