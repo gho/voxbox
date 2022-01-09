@@ -37,11 +37,14 @@ const vertexShader = loadShader(
     in vec2 in_texture_coords;
     in vec4 in_position;
     in vec4 in_offset;
+    in vec3 in_normal;
 
     out vec2 v_texture_coords;
+    out vec3 v_normal;
 
     void main() {
       v_texture_coords = in_texture_coords;
+      v_normal = in_normal;
       gl_Position = u_projection * u_view * (in_position + in_offset);
     }
   `,
@@ -57,11 +60,17 @@ const fragmentShader = loadShader(
     uniform sampler2D u_texture;
 
     in vec2 v_texture_coords;
+    in vec3 v_normal;
 
     out vec4 out_color;
 
     void main() {
+      float ambient_light = 0.6;
+      vec3 light_direction = normalize(vec3(-3, 1, 0));
+      float diffuse_light = max(0.0, dot(v_normal, light_direction));
+      float light = ambient_light + diffuse_light;
       out_color = texture(u_texture, v_texture_coords);
+      out_color.rgb *= min(1.0, light);
     }
   `,
 );
@@ -102,11 +111,11 @@ function bindVertexAttribute(index, size, type, normalized, stride, offset) {
 }
 
 //   8---7
-//  /|  /|
-// 4---3 |
-// | 5-|-6
-// |/  |/
-// 1---2
+//  /|  /|  +y
+// 4---3 |   |
+// | 5-|-6   +- +x
+// |/  |/   /
+// 1---2   +z
 createBuffer(
   gl.ARRAY_BUFFER,
   new Float32Array([
@@ -155,6 +164,31 @@ createBuffer(
   ]),
 );
 bindVertexAttribute("in_position", 3, gl.FLOAT, false, 0, 0);
+
+createBuffer(
+  gl.ARRAY_BUFFER,
+  new Float32Array([
+    // front
+     0,  0,  1,  0,  0,  1,  0,  0,  1,
+     0,  0,  1,  0,  0,  1,  0,  0,  1,
+    // back
+     0,  0, -1,  0,  0, -1,  0,  0, -1,
+     0,  0, -1,  0,  0, -1,  0,  0, -1,
+    // top
+     0,  1,  0,  0,  1,  0,  0,  1,  0,
+     0,  1,  0,  0,  1,  0,  0,  1,  0,
+    // bottom
+     0, -1,  0,  0, -1,  0,  0, -1,  0,
+     0, -1,  0,  0, -1,  0,  0, -1,  0,
+    // left
+    -1,  0,  0, -1,  0,  0, -1,  0,  0,
+    -1,  0,  0, -1,  0,  0, -1,  0,  0,
+    // right
+     1,  0,  0,  1,  0,  0,  1,  0,  0,
+     1,  0,  0,  1,  0,  0,  1,  0,  0,
+  ]),
+);
+bindVertexAttribute("in_normal", 3, gl.FLOAT, false, 0, 0);
 
 createBuffer(
   gl.ARRAY_BUFFER,
