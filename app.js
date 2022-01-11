@@ -344,12 +344,13 @@ function update() {
     Math.sin(radians(yaw)) * cosPitch,
   ]);
 
-  let velocity;
-  if (forward)  velocity = front;
-  if (backward) velocity = negate(front);
-  if (left)     velocity = negate(norm(cross(front, up)));
-  if (right)    velocity = norm(cross(front, up));
-  if (velocity) position = add(position, mul(velocity, 0.1));
+  let velocity = [0, 0, 0];
+  if (forward)  velocity = add(velocity, front);
+  if (backward) velocity = add(velocity, negate(front));
+  if (left)     velocity = add(velocity, negate(norm(cross(front, up))));
+  if (right)    velocity = add(velocity, norm(cross(front, up)));
+
+  position = add(position, mul(velocity, 0.1));
 }
 
 const image = new Image();
