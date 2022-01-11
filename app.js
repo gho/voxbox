@@ -1,4 +1,4 @@
-import generateTerrain from "./terrain.js";
+import World from "./world.js";
 
 const canvas = document.querySelector("#canvas");
 
@@ -203,23 +203,9 @@ createBuffer(
 );
 bindVertexAttribute("in_texture_coords", 2, gl.FLOAT, false, 0, 0);
 
-const width = 6;
-const height = 6;
-const depth = 6;
+const world = new World(6, 6, 6);
 
-const terrain = generateTerrain(width, depth);
-
-const blocks = [];
-for (let z = 0; z < depth; z++) {
-  for (let x = 0; x < width; x++) {
-    const h = terrain[z*width + x] * height;
-    for (let y = 0; y < h; y++) {
-      blocks.push(x, y, z);
-    }
-  }
-}
-
-createBuffer(gl.ARRAY_BUFFER, new Float32Array(blocks));
+createBuffer(gl.ARRAY_BUFFER, new Float32Array(world.toArray()));
 const offset = gl.getAttribLocation(program, "in_offset");
 bindVertexAttribute(offset, 3, gl.FLOAT, false, 0, 0);
 gl.vertexAttribDivisor(offset, 1);
@@ -378,7 +364,7 @@ image.onload = () => {
 
     gl.clearColor(0, 0, 0, 1);
     gl.clear(gl.COLOR_BUFFER_BIT);
-    gl.drawArraysInstanced(gl.TRIANGLES, 0, 36, blocks.length/3);
+    gl.drawArraysInstanced(gl.TRIANGLES, 0, 36, world.blockCount);
 
     requestAnimationFrame(render);
   }

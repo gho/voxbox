@@ -97,7 +97,7 @@ function noise(x, y) {
   return result;
 };
 
-export default function generateTerrain(width, depth) {
+function generateTerrain(width, depth) {
   let min = Number.MAX_VALUE;
   let max = Number.MIN_VALUE;
 
@@ -113,3 +113,32 @@ export default function generateTerrain(width, depth) {
 
   return heights.map(h => (h-min) / (max-min));
 };
+
+class Block {
+  constructor(...position) {
+    this.position = position;
+  }
+}
+
+export default class World {
+  constructor(width, depth, height) {
+    this.blocks = [];
+    const terrain = generateTerrain(width, depth);
+    for (let x = 0; x < width; x++) {
+      for (let z = 0; z < depth; z++) {
+        const h = terrain[z*width + x] * height;
+        for (let y = 0; y < h; y++) {
+          this.blocks.push(new Block(x, y, z));
+        }
+      }
+    }
+  }
+
+  get blockCount() {
+    return this.blocks.length;
+  }
+
+  toArray() {
+    return this.blocks.map(v => v.position).flat();
+  }
+}
