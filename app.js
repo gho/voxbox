@@ -1,15 +1,5 @@
 import World from "./world.js";
-
-import {
-  radians,
-  perspective,
-  lookAt,
-  add,
-  mul,
-  negate,
-  norm,
-  cross
-} from "./math.js";
+import {v3, radians, perspective, lookAt} from "./math.js";
 
 const canvas = document.querySelector("#canvas");
 
@@ -188,9 +178,9 @@ const offset = gl.getAttribLocation(program, "in_offset");
 bindVertexAttribute(offset, 3, gl.FLOAT, false, 0, 0);
 gl.vertexAttribDivisor(offset, 1);
 
-let position = [3, 7, 7];
-const up = [0, 1, 0];
-let front = [1, 0, 0];
+let position = v3(3, 7, 7);
+const up = v3(0, 1, 0);
+let front = v3(1, 0, 0);
 
 let forward, backward, left, right;
 
@@ -241,19 +231,19 @@ document.addEventListener("pointerlockchange", () => {
 
 function update() {
   const cosPitch = Math.cos(radians(pitch));
-  front = norm([
+  front = v3(
     Math.cos(radians(yaw)) * cosPitch,
     Math.sin(radians(pitch)),
     Math.sin(radians(yaw)) * cosPitch,
-  ]);
+  ).unit();
 
-  let velocity = [0, 0, 0];
-  if (forward)  velocity = add(velocity, front);
-  if (backward) velocity = add(velocity, negate(front));
-  if (left)     velocity = add(velocity, negate(norm(cross(front, up))));
-  if (right)    velocity = add(velocity, norm(cross(front, up)));
+  let velocity = v3(0, 0, 0);
+  if (forward)  velocity = velocity.add(front);
+  if (backward) velocity = velocity.add(front.negate());
+  if (left)     velocity = velocity.add(front.cross(up).unit().negate());
+  if (right)    velocity = velocity.add(front.cross(up).unit());
 
-  position = add(position, mul(velocity, 0.1));
+  position = position.add(velocity.mul(0.1));
 }
 
 const image = new Image();

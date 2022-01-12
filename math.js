@@ -2,37 +2,39 @@ export function radians(degrees) {
   return degrees * 0.01745329251;
 }
 
-export function add(x, y) {
-  return [x[0]+y[0], x[1]+y[1], x[2]+y[2]];
+export function v3(x, y, z) {
+  return new V3(x, y, z);
 }
 
-function sub(x, y) {
-  return [x[0]-y[0], x[1]-y[1], x[2]-y[2]];
-}
+class V3 {
+  constructor(x=0, y=0, z=0) {
+    this.x = x;
+    this.y = y;
+    this.z = z;
+  }
 
-export function mul(x, c) {
-  return [x[0]*c, x[1]*c, x[2]*c];
-}
+  add(v)   { return new V3(this.x+v.x, this.y+v.y, this.z+v.z); }
+  sub(v)   { return new V3(this.x-v.x, this.y-v.y, this.z-v.z); }
+  mul(c)   { return new V3(this.x*c, this.y*c, this.z*c); }
+  negate() { return new V3(-this.x, -this.y, -this.z); }
+  dot(v)   { return this.x*v.x + this.y*v.y + this.z*v.z; }
 
-export function negate(x) {
-  return [-x[0], -x[1], -x[2]];
-}
+  cross(v) {
+    return new V3(
+      this.y*v.z - this.z*v.y,
+      this.z*v.x - this.x*v.z,
+      this.x*v.y - this.y*v.x
+    );
+  }
 
-export function norm(x) {
-  const len = Math.sqrt(x[0]**2 + x[1]**2 + x[2]**2);
-  return [x[0]/len, x[1]/len, x[2]/len];
-}
+  norm() {
+    return Math.sqrt(this.x**2 + this.y**2 + this.z**2);
+  }
 
-export function cross(x, y) {
-  return [
-    x[1]*y[2] - x[2]*y[1],
-    x[2]*y[0] - x[0]*y[2],
-    x[0]*y[1] - x[1]*y[0],
-  ];
-}
-
-function dot(x, y) {
-  return x[0]*y[0] + x[1]*y[1] + x[2]*y[2];
+  unit() {
+    const len = this.norm();
+    return new V3(this.x/len, this.y/len, this.z/len);
+  }
 }
 
 export function perspective(aspect, fovy, near, far) {
@@ -46,14 +48,14 @@ export function perspective(aspect, fovy, near, far) {
 }
 
 export function lookAt(eye, center, up) {
-  const target = add(eye, center);
-  const f = norm(sub(target, eye));
-  const s = norm(cross(f, up));
-  const u = cross(s, f);
+  const target = eye.add(center);
+  const f = target.sub(eye).unit();
+  const s = f.cross(up).unit();
+  const u = s.cross(f);
   return [
-    s[0], s[1], s[2], -dot(s, eye),
-    u[0], u[1], u[2], -dot(u, eye),
-    -f[0], -f[1], -f[2], dot(f, eye),
+    s.x, s.y, s.z, -s.dot(eye),
+    u.x, u.y, u.z, -u.dot(eye),
+    -f.x, -f.y, -f.z, f.dot(eye),
     0, 0, 0, 1,
   ];
 }
