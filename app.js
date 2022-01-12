@@ -181,14 +181,14 @@ bindVertexAttribute("in_position", 3, gl.FLOAT, false, stride, 0);
 bindVertexAttribute("in_texture_coords", 2, gl.FLOAT, false, stride, 12);
 bindVertexAttribute("in_normal", 3, gl.FLOAT, false, stride, 20);
 
-const world = new World(6, 6, 6);
+const world = new World(64, 64, 16);
 
 createBuffer(gl.ARRAY_BUFFER, new Float32Array(world.toArray()));
 const offset = gl.getAttribLocation(program, "in_offset");
 bindVertexAttribute(offset, 3, gl.FLOAT, false, 0, 0);
 gl.vertexAttribDivisor(offset, 1);
 
-let position = [-3, 1, 1];
+let position = [3, 7, 7];
 const up = [0, 1, 0];
 let front = [1, 0, 0];
 
@@ -269,7 +269,7 @@ image.onload = () => {
   const texture = gl.createTexture();
   gl.activeTexture(gl.TEXTURE0);
   gl.bindTexture(gl.TEXTURE_2D, texture);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
 
