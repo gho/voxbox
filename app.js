@@ -1,5 +1,16 @@
 import World from "./world.js";
 
+import {
+  radians,
+  perspective,
+  lookAt,
+  add,
+  mul,
+  negate,
+  norm,
+  cross
+} from "./math.js";
+
 const canvas = document.querySelector("#canvas");
 
 canvas.width = 800;
@@ -177,70 +188,9 @@ const offset = gl.getAttribLocation(program, "in_offset");
 bindVertexAttribute(offset, 3, gl.FLOAT, false, 0, 0);
 gl.vertexAttribDivisor(offset, 1);
 
-function radians(degrees) {
-  return degrees * 0.01745329251;
-}
-
-function perspective(fovy, near, far) {
-  const f = Math.tan(1.57079632679 - radians(fovy)/2);
-  const aspect = gl.canvas.width/gl.canvas.height;
-  return [
-    f/aspect, 0, 0, 0,
-    0, f, 0, 0,
-    0, 0, (near+far) / (near-far), -1,
-    0, 0, 2*near*far / (near-far), 0,
-  ];
-}
-
-function add(x, y) {
-  return [x[0]+y[0], x[1]+y[1], x[2]+y[2]];
-}
-
-function sub(x, y) {
-  return [x[0]-y[0], x[1]-y[1], x[2]-y[2]];
-}
-
-function mul(x, c) {
-  return [x[0]*c, x[1]*c, x[2]*c];
-}
-
-function negate(x) {
-  return [-x[0], -x[1], -x[2]];
-}
-
-function norm(x) {
-  const len = Math.sqrt(x[0]**2 + x[1]**2 + x[2]**2);
-  return [x[0]/len, x[1]/len, x[2]/len];
-}
-
-function cross(x, y) {
-  return [
-    x[1]*y[2] - x[2]*y[1],
-    x[2]*y[0] - x[0]*y[2],
-    x[0]*y[1] - x[1]*y[0],
-  ];
-}
-
-function dot(x, y) {
-  return x[0]*y[0] + x[1]*y[1] + x[2]*y[2];
-}
-
 let position = [-3, 1, 1];
 const up = [0, 1, 0];
 let front = [1, 0, 0];
-
-function camera() {
-  const target = add(position, front);
-  const f = norm(sub(target, position));
-  const s = norm(cross(f, up));
-  const u = cross(s, f);
-  return [
-    s[0], s[1], s[2], -dot(s, position),
-    u[0], u[1], u[2], -dot(u, position),
-    -f[0], -f[1], -f[2], dot(f, position),
-    0, 0, 0, 1,
-  ];
-}
 
 let forward, backward, left, right;
 
@@ -313,7 +263,8 @@ image.onload = () => {
   gl.useProgram(program);
 
   const projection = gl.getUniformLocation(program, "u_projection");
-  gl.uniformMatrix4fv(projection, false, perspective(60, 0.1, 100));
+  const aspect = gl.canvas.width / gl.canvas.height;
+  gl.uniformMatrix4fv(projection, false, perspective(aspect, 60, 0.1, 100));
 
   const texture = gl.createTexture();
   gl.activeTexture(gl.TEXTURE0);
@@ -327,7 +278,7 @@ image.onload = () => {
   function render() {
     update();
 
-    gl.uniformMatrix4fv(view, true, camera());
+    gl.uniformMatrix4fv(view, true, lookAt(position, front, up));
 
     gl.clearColor(0, 0, 0, 1);
     gl.clear(gl.COLOR_BUFFER_BIT);
