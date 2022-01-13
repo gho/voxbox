@@ -1,4 +1,5 @@
 import World from "./world.js";
+import Input from "./input.js";
 import {v3, radians, perspective, lookAt} from "./math.js";
 
 const canvas = document.querySelector("#canvas");
@@ -182,66 +183,33 @@ let position = v3(3, 7, 7);
 const up = v3(0, 1, 0);
 let front = v3(1, 0, 0);
 
-let forward, backward, left, right;
+const input = Input();
 
-document.addEventListener("keydown", event => {
-  switch (event.key) {
-    case "w": forward = true; break;
-    case "s": backward = true; break;
-    case "a": left = true; break;
-    case "d": right = true; break;
-  }
-});
+input.handleMouse(canvas);
+canvas.onclick = () => canvas.requestPointerLock();
 
-document.addEventListener("keyup", event => {
-  switch (event.key) {
-    case "w": forward = false; break;
-    case "s": backward = false; break;
-    case "a": left = false; break;
-    case "d": right = false; break;
-  }
-});
-
-let yaw = 0, pitch = 0;
-
-const minPitch = -89;
-const maxPitch =  89;
-const angularVelocity = 0.15;
-
-canvas.onclick = () => {
-  canvas.requestPointerLock();
-};
-
-function handleMouseMove(event) {
-  yaw += event.movementX * angularVelocity;
-  if (Math.abs(yaw) > 360) yaw = 0;
-
-  pitch -= event.movementY * angularVelocity;
-  if (pitch > maxPitch) pitch = maxPitch;
-  if (pitch < minPitch) pitch = minPitch;
-}
-
-document.addEventListener("pointerlockchange", () => {
-  if (document.pointerLockElement === canvas) {
-    document.addEventListener("mousemove", handleMouseMove);
-  } else {
-    document.removeEventListener("mousemove", handleMouseMove);
-  }
+input.handleKeyboard({
+  w: "forward",
+  s: "backward",
+  a: "left",
+  d: "right",
 });
 
 function update() {
-  const cosPitch = Math.cos(radians(pitch));
+  const pitch = radians(input.pitch);
+  const yaw = radians(input.yaw);
+  const cosPitch = Math.cos(pitch);
   front = v3(
-    Math.cos(radians(yaw)) * cosPitch,
-    Math.sin(radians(pitch)),
-    Math.sin(radians(yaw)) * cosPitch,
+    Math.cos(yaw) * cosPitch,
+    Math.sin(pitch),
+    Math.sin(yaw) * cosPitch,
   ).unit();
 
   let velocity = v3(0, 0, 0);
-  if (forward)  velocity = velocity.add(front);
-  if (backward) velocity = velocity.add(front.negate());
-  if (left)     velocity = velocity.add(front.cross(up).unit().negate());
-  if (right)    velocity = velocity.add(front.cross(up).unit());
+  if (input.forward)  velocity = velocity.add(front);
+  if (input.backward) velocity = velocity.add(front.negate());
+  if (input.left)     velocity = velocity.add(front.cross(up).unit().negate());
+  if (input.right)    velocity = velocity.add(front.cross(up).unit());
 
   position = position.add(velocity.mul(0.1));
 }
