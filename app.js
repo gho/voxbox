@@ -1,6 +1,7 @@
 import World from "./world.js";
 import Input from "./input.js";
-import {v3, radians, perspective, lookAt} from "./math.js";
+import Player from "./player.js";
+import {perspective} from "./math.js";
 
 const canvas = document.querySelector("#canvas");
 
@@ -179,11 +180,8 @@ const offset = gl.getAttribLocation(program, "in_offset");
 bindVertexAttribute(offset, 3, gl.FLOAT, false, 0, 0);
 gl.vertexAttribDivisor(offset, 1);
 
-let position = v3(3, 7, 7);
-const up = v3(0, 1, 0);
-let front = v3(1, 0, 0);
-
 const input = Input();
+const player = Player(input);
 
 input.handleMouse(canvas);
 canvas.onclick = () => canvas.requestPointerLock();
@@ -194,25 +192,6 @@ input.handleKeyboard({
   a: "left",
   d: "right",
 });
-
-function update() {
-  const pitch = radians(input.pitch);
-  const yaw = radians(input.yaw);
-  const cosPitch = Math.cos(pitch);
-  front = v3(
-    Math.cos(yaw) * cosPitch,
-    Math.sin(pitch),
-    Math.sin(yaw) * cosPitch,
-  ).unit();
-
-  let velocity = v3(0, 0, 0);
-  if (input.forward)  velocity = velocity.add(front);
-  if (input.backward) velocity = velocity.add(front.negate());
-  if (input.left)     velocity = velocity.add(front.cross(up).unit().negate());
-  if (input.right)    velocity = velocity.add(front.cross(up).unit());
-
-  position = position.add(velocity.mul(0.1));
-}
 
 const image = new Image();
 image.src = new URL("dirt.png", import.meta.url);
@@ -234,9 +213,9 @@ image.onload = () => {
   const view = gl.getUniformLocation(program, "u_view");
 
   function render() {
-    update();
+    player.update();
 
-    gl.uniformMatrix4fv(view, true, lookAt(position, front, up));
+    gl.uniformMatrix4fv(view, true, player.view);
 
     gl.clearColor(0, 0, 0, 1);
     gl.clear(gl.COLOR_BUFFER_BIT);

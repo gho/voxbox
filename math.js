@@ -35,6 +35,13 @@ class V3 {
     const len = this.norm();
     return new V3(this.x/len, this.y/len, this.z/len);
   }
+
+  iadd(v) {
+    this.x += v.x;
+    this.y += v.y;
+    this.z += v.z;
+    return this;
+  }
 }
 
 export function perspective(aspect, fovy, near, far) {
