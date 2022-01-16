@@ -115,30 +115,54 @@ function generateTerrain(width, depth) {
 };
 
 class Block {
-  constructor(...position) {
-    this.position = position;
+  static EMPTY = Symbol("EMPTY");
+  static DIRT  = Symbol("DIRT");
+
+  constructor(type) {
+    this.type = type;
+  }
+
+  get isTransparent() {
+    return this.type === Block.EMPTY;
   }
 }
 
-export default class World {
-  constructor(width, depth, height) {
-    this.blocks = [];
-    const terrain = generateTerrain(width, depth);
-    for (let x = 0; x < width; x++) {
+export default function World(width, height, depth) {
+  //  z:depth
+  //  | y:height
+  //  |/
+  //  +--x:width
+  const blocks = [];
+
+  function index(x, y, z) {
+    return x*height*depth + y*depth + z;
+  }
+
+  const terrain = generateTerrain(width, height);
+  for (let x = 0; x < width; x++) {
+    for (let y = 0; y < height; y++) {
+      const d = terrain[x*width + y] * depth;
       for (let z = 0; z < depth; z++) {
-        const h = terrain[z*width + x] * height;
-        for (let y = 0; y < h; y++) {
-          this.blocks.push(new Block(x, y, z));
-        }
+        const type = z > d ? Block.EMPTY : Block.DIRT;
+        blocks[index(x, y, z)] = new Block(type);
       }
     }
   }
 
-  get blockCount() {
-    return this.blocks.length;
-  }
+  return {
+    get blocks() {
+      return blocks
+        .map((block, index) => {
+          if (block.isTransparent) return null;
+          const x = Math.floor(index / (height*depth));
+          const remainder = index - (x*height*depth);
+          return [x, Math.floor(remainder/depth), remainder%depth];
+        })
+        .filter(x => x);
+    },
 
-  toArray() {
-    return this.blocks.map(v => v.position).flat();
-  }
+    blockAt(position) {
+      return blocks[index(position.x, position.y, position.z)];
+    }
+  };
 }

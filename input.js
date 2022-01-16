@@ -4,7 +4,7 @@ const rotationSpeed = 0.15;
 
 export default function Input() {
   let pitch = 0;
-  let yaw = 0;
+  let yaw = 90;
   const state = {};
 
   return {

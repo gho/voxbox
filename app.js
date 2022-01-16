@@ -69,7 +69,7 @@ const fragmentShader = loadShader(
 
     void main() {
       float ambient_light = 0.6;
-      vec3 light_direction = normalize(vec3(-3, 1, 0));
+      vec3 light_direction = normalize(vec3(0, -3, 1));
       float diffuse_light = max(0.0, dot(v_normal, light_direction));
       float light = ambient_light + diffuse_light;
       out_color = texture(u_texture, v_texture_coords);
@@ -173,9 +173,10 @@ bindVertexAttribute("in_position", 3, gl.FLOAT, false, stride, 0);
 bindVertexAttribute("in_texture_coords", 2, gl.FLOAT, false, stride, 12);
 bindVertexAttribute("in_normal", 3, gl.FLOAT, false, stride, 20);
 
-const world = new World(64, 64, 16);
+const world = World(64, 64, 16);
 
-createBuffer(gl.ARRAY_BUFFER, new Float32Array(world.toArray()));
+const blocks = world.blocks;
+createBuffer(gl.ARRAY_BUFFER, new Float32Array(blocks.flat()));
 const offset = gl.getAttribLocation(program, "in_offset");
 bindVertexAttribute(offset, 3, gl.FLOAT, false, 0, 0);
 gl.vertexAttribDivisor(offset, 1);
@@ -219,7 +220,7 @@ image.onload = () => {
 
     gl.clearColor(0, 0, 0, 1);
     gl.clear(gl.COLOR_BUFFER_BIT);
-    gl.drawArraysInstanced(gl.TRIANGLES, 0, 36, world.blockCount);
+    gl.drawArraysInstanced(gl.TRIANGLES, 0, 36, blocks.length);
 
     requestAnimationFrame(render);
   }
