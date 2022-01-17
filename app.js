@@ -213,8 +213,13 @@ image.onload = () => {
 
   const view = gl.getUniformLocation(program, "u_view");
 
+  let prevTime;
+
   function render() {
-    player.update();
+    const now = performance.now();
+    if (!prevTime) prevTime = now;
+
+    player.update(now - prevTime);
 
     gl.uniformMatrix4fv(view, true, player.view);
 
@@ -223,6 +228,8 @@ image.onload = () => {
     gl.drawArraysInstanced(gl.TRIANGLES, 0, 36, blocks.length);
 
     requestAnimationFrame(render);
+
+    prevTime = now;
   }
 
   requestAnimationFrame(render);

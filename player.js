@@ -1,5 +1,7 @@
 import {lookAt, radians, v3} from "./math.js";
 
+const walkSpeed = 1/160;
+
 export default function Player(input) {
   const up = v3(0, 0, 1);
   let position = v3(7, 3, 7);
@@ -10,7 +12,7 @@ export default function Player(input) {
       return lookAt(position, direction, up);
     },
 
-    update() {
+    update(dt) {
       const pitch = radians(input.pitch);
       const yaw = radians(input.yaw);
       const cosPitch = Math.cos(pitch);
@@ -26,7 +28,7 @@ export default function Player(input) {
       if (input.left)     heading.iadd(direction.cross(up).unit().negate());
       if (input.right)    heading.iadd(direction.cross(up).unit());
 
-      position = position.add(heading.mul(0.1));
+      position = position.add(heading.mul(dt*walkSpeed));
     },
   };
 }
