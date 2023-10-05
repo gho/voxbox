@@ -1,0 +1,16 @@
+{
+  "name": "voxbox",
+  "version": "1.0.0",
+  "author": "Gorman Ho <gormanchi@gmail.com>",
+  "private": true,
+  "source": "index.html",
+  "scripts": {
+    "start": "parcel --dist-dir dist/serve",
+    "predeploy": "rm -rf .parcel-cache dist/gh-page && parcel build index.html --dist-dir dist/gh-page --public-url 'https://gho.github.io/voxbox'",
+    "deploy": "gh-pages -d dist/gh-page -m deploy -f"
+  },
+  "devDependencies": {
+    "gh-pages": "3.2.3",
+    "parcel": "2.0.1"
+  }
+}
